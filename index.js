@@ -11,12 +11,12 @@ const CONSTANTS = require('./lib/constants')
 
 const levels = {
   default: 'USERLVL',
-  60: 'FATAL',
-  50: 'ERROR',
-  40: 'WARN ',
-  30: 'INFO ',
-  20: 'DEBUG',
-  10: 'TRACE'
+  60: 'F',
+  'error': 'E',
+  'warn': 'W ',
+  'info': 'I',
+  'debug': 'D',
+  10: 'T'
 }
 
 const defaultOptions = {
@@ -36,7 +36,8 @@ function isObject (input) {
 }
 
 function isPinoLog (log) {
-  return log && (log.hasOwnProperty('v') && log.v === 1)
+  return log
+  //return log && (log.hasOwnProperty('v') && log.v === 1)
 }
 
 function formatTime (epoch, translateTime) {
@@ -68,21 +69,22 @@ module.exports = function prettyFactory (options) {
   const color = {
     default: nocolor,
     60: nocolor,
-    50: nocolor,
-    40: nocolor,
-    30: nocolor,
-    20: nocolor,
+    'error': nocolor,
+    'warn': nocolor,
+    'info': nocolor,
+    'debug': nocolor,
     10: nocolor,
     message: nocolor
   }
+
   if (opts.colorize) {
     const ctx = new chalk.constructor({ enabled: true, level: 3 })
     color.default = ctx.white
     color[60] = ctx.bgRed
-    color[50] = ctx.red
-    color[40] = ctx.yellow
-    color[30] = ctx.green
-    color[20] = ctx.blue
+    color['error'] = ctx.red
+    color['warn'] = ctx.yellow
+    color['info'] = ctx.green
+    color['debug'] = ctx.blue
     color[10] = ctx.grey
     color.message = ctx.cyan
   }
@@ -93,8 +95,10 @@ module.exports = function prettyFactory (options) {
 
   function pretty (inputData) {
     let log
+
     if (!isObject(inputData)) {
       const parsed = jsonParser(inputData)
+
       log = parsed.value
       if (parsed.err || !isPinoLog(log)) {
         // pass through
@@ -110,18 +114,23 @@ module.exports = function prettyFactory (options) {
 
     const standardKeys = [
       'pid',
-      'hostname',
+      'host',
+      'thread',
       'name',
       'level',
-      'time',
+      'timestamp',
+      'message',
+      'application',
+      'payload',
+      'level_index',
       'v'
     ]
 
     if (opts.translateTime) {
-      log.time = formatTime(log.time, opts.translateTime)
+      log.timestamp = formatTime(log.timestamp, opts.translateTime)
     }
 
-    var line = log.time ? `[${log.time}]` : ''
+    var line = log.timestamp ? `${log.timestamp}` : ''
 
     const coloredLevel = levels.hasOwnProperty(log.level)
       ? color[log.level](levels[log.level])
@@ -135,30 +144,32 @@ module.exports = function prettyFactory (options) {
       line = `${lineOrEmpty}${coloredLevel}`
     }
 
-    if (log.name || log.pid || log.hostname) {
-      line += ' ('
+    if (log.pid || log.thread) {
+      line += ' ['
 
-      if (log.name) {
-        line += log.name
-      }
-
-      if (log.name && log.pid) {
-        line += '/' + log.pid
-      } else if (log.pid) {
+      if (log.pid) {
         line += log.pid
       }
 
-      if (log.hostname) {
-        line += ' on ' + log.hostname
+      if (log.thread) {
+        line += ':' + log.thread + ']'
       }
-
-      line += ')'
     }
 
-    line += ': '
+    line += ' '
+
+    if (log.name) {
+      line += color[log.level](log.name)
+    }
 
     if (log[messageKey] && typeof log[messageKey] === 'string') {
+      line += ' '
       line += color.message(log[messageKey])
+    }
+
+    if (log.payload) {
+      line += ' '
+      line += JSON.stringify(log.payload)
     }
 
     line += EOL
