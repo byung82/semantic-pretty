@@ -1,10 +1,10 @@
 {
   "name": "semantic-pretty",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Prettifier for Semantic Logger pretty log lines",
   "main": "index.js",
   "bin": {
-    "pino-pretty": "./bin.js"
+    "semantic-pretty": "./bin.js"
   },
   "scripts": {
     "lint": "standard | snazzy",
